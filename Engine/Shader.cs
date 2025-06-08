@@ -1,5 +1,5 @@
 ﻿using Silk.NET.OpenGL;
-using Silk.NET.Maths;
+using System.Numerics;
 using GLCtx = Silk.NET.OpenGL.GL;
 
 namespace Engine;
@@ -54,8 +54,7 @@ public class Shader : IDisposable
         GL.Uniform1(location, value);
     }
     
-    public unsafe void SetUniform<T>(string name, Matrix4X4<T> matrix)
-    where T : unmanaged, IFormattable, IEquatable<T>, IComparable<T>
+    public unsafe void SetUniform(string name, Matrix4x4 matrix)
     {
         int location = GL.GetUniformLocation(_handle, name);
         if (location == -1)

@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Numerics;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -17,6 +18,7 @@ class Program
     static BufferObject<float> VBO;
     static Shader Shader;
     static Texture Texture;
+    static List<Transform> Transforms = new();
 
     static readonly float[] Vertices =
     {
@@ -40,7 +42,7 @@ class Program
             Size = new Vector2D<int>(800, 600),
             Title = "Engine",
             WindowBorder = WindowBorder.Fixed,
-            IsVisible = false
+            IsVisible = false,
         };
         Window = SilkWindow.Create(options);
         
@@ -54,11 +56,11 @@ class Program
     }
     static void OnLoad()
     {
-        
         GL = Window.CreateOpenGL();
         Window.Center();
         Window.IsVisible = true;
         
+        Transforms.Add( new Transform());
         
         VBO = new BufferObject<float>(GL, Vertices, BufferTargetARB.ArrayBuffer);
         EBO = new BufferObject<uint>(GL, Indices, BufferTargetARB.ElementArrayBuffer);
@@ -72,22 +74,25 @@ class Program
         Shader = new Shader(GL, "shader.vert", "shader.frag");
         
         IInputContext input = Window.CreateInput();
-        for (int i = 0; i < input.Keyboards.Count; i++)
+        foreach (IKeyboard keyboard in input.Keyboards)
         {
-            input.Keyboards[i].KeyDown += (IKeyboard keyboard, Key key, int code) =>
+            keyboard.KeyDown += (keyboard1, key, code) =>
             {
-                if (key == Key.Escape) Window.Close();
+                if (key == Key.Escape)
+                {
+                    Window.Close();
+                }
             };
         }
-        
-        
+
+
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
     }
 
     static void OnUpdate(double delta)
     {
-        
+        Transforms[0].Rotation = Quaternion.CreateFromAxisAngle(new Vector3(0f, 0f, 1.0f), Scalar.DegreesToRadians((float) Window.Time * 180));
     }
     
     static unsafe void OnRender(double delta)
@@ -99,15 +104,13 @@ class Program
         Texture.Bind();
         Shader.Use();
 
-        Matrix4X4<float> rotation = Matrix4X4.CreateRotationZ(Scalar.DegreesToRadians(0f));
-        Matrix4X4<float> scale = Matrix4X4.CreateScale(1f);
-        Matrix4X4<float> translation = Matrix4X4.CreateTranslation(new Vector3D<float>(0.0f, 0.0f, 0.0f));
+
+        foreach (var transform in Transforms)
+        {
+            Shader.SetUniform("uTrans", transform.ModelMatrix);
+            GL.DrawElements(PrimitiveType.Triangles, (uint) Indices.Length, DrawElementsType.UnsignedInt, (void*) 0);
+        }
         
-        Matrix4X4<float> trans = scale * rotation * translation;
-        
-        Shader.SetUniform("uTrans", trans);
-        
-        GL.DrawElements(PrimitiveType.Triangles, (uint) Indices.Length, DrawElementsType.UnsignedInt, (void*) 0);
     }
     
     static void OnClose()

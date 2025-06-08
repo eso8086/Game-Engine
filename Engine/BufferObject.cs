@@ -1,5 +1,5 @@
-﻿using GLCtx = Silk.NET.OpenGL.GL;
-using Silk.NET.OpenGL;
+﻿using Silk.NET.OpenGL;
+using GLCtx = Silk.NET.OpenGL.GL;
 namespace Engine;
 
 public class BufferObject<TDataType> : IDisposable
