@@ -11,14 +11,29 @@ namespace Engine;
 
 class Program
 {
+    
+    // silk stuff
     static IWindow Window;
     static GLCtx GL;
+    
+    // gl stuff
     static VertexArrayObject<float, uint> VAO;
     static BufferObject<uint> EBO;
     static BufferObject<float> VBO;
     static Shader Shader;
     static Texture Texture;
+    
+    // entity related stuff
     static List<Transform> Transforms = new();
+    
+    //camera stuff
+    // TODO for me: learn cross product order thing
+    static Vector3 CameraPosition = new(0.0f, 0.0f, 3.0f);
+    static Vector3 CameraTarget = new(0.0f);
+    static Vector3 CameraDirection = Vector3.Normalize(CameraPosition - CameraTarget); 
+    static Vector3 CameraRight = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, CameraDirection));
+    static Vector3 CameraUp = Vector3.Cross(CameraDirection, CameraRight);
+    
 
     static readonly float[] Vertices =
     {
@@ -92,7 +107,8 @@ class Program
 
     static void OnUpdate(double delta)
     {
-        Transforms[0].Rotation = Quaternion.CreateFromAxisAngle(new Vector3(0f, 0f, 1.0f), Scalar.DegreesToRadians((float) Window.Time * 180));
+        if(Transforms.Count > 0)
+            Transforms[0].Rotation = Quaternion.CreateFromAxisAngle(new Vector3(0f, 0f, 1.0f), Scalar.DegreesToRadians((float) Window.Time * 180));
     }
     
     static unsafe void OnRender(double delta)
@@ -104,7 +120,13 @@ class Program
         Texture.Bind();
         Shader.Use();
 
-
+        Matrix4x4 viewMatrix = Matrix4x4.CreateLookAt(CameraPosition, CameraTarget, CameraUp);
+        Matrix4x4 projectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(
+            Scalar.DegreesToRadians(45.0f), (float) Window.Size.X / Window.Size.Y, 0.1f, 100.0f);
+        
+        Shader.SetUniform("uView", viewMatrix);
+        Shader.SetUniform("uProjection", projectionMatrix);
+        
         foreach (var transform in Transforms)
         {
             Shader.SetUniform("uTrans", transform.Matrix);

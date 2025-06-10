@@ -8,10 +8,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5aec4ae7-90e2-4280-ad10-0789cf185b30" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Engine/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Engine/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Engine/Transform.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Engine/Transform.cs" afterDir="false" />
-    </list>
+    <list default="true" id="5aec4ae7-90e2-4280-ad10-0789cf185b30" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -141,7 +138,7 @@
       <workItem from="1749400012877" duration="2250000" />
       <workItem from="1749402291069" duration="4783000" />
       <workItem from="1749447615813" duration="3103000" />
-      <workItem from="1749534800069" duration="1054000" />
+      <workItem from="1749534800069" duration="1380000" />
     </task>
     <task id="LOCAL-00001" summary="basic window">
       <option name="closed" value="true" />
