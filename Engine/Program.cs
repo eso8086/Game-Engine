@@ -107,7 +107,7 @@ class Program
 
         foreach (var transform in Transforms)
         {
-            Shader.SetUniform("uTrans", transform.ModelMatrix);
+            Shader.SetUniform("uTrans", transform.Matrix);
             GL.DrawElements(PrimitiveType.Triangles, (uint) Indices.Length, DrawElementsType.UnsignedInt, (void*) 0);
         }
         
