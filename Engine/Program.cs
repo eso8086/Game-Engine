@@ -15,6 +15,7 @@ class Program
     // silk stuff
     static IWindow Window;
     static GLCtx GL;
+    static IKeyboard PrimaryKeyboard;
     
     // gl stuff
     static VertexArrayObject<float, uint> VAO;
@@ -29,10 +30,14 @@ class Program
     //camera stuff
     // TODO for me: learn cross product order thing
     static Vector3 CameraPosition = new(0.0f, 0.0f, 3.0f);
-    static Vector3 CameraTarget = new(0.0f);
-    static Vector3 CameraDirection = Vector3.Normalize(CameraPosition - CameraTarget); 
-    static Vector3 CameraRight = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, CameraDirection));
-    static Vector3 CameraUp = Vector3.Cross(CameraDirection, CameraRight);
+    static Vector3 CameraFront = new(0f, 0f, -1.0f);
+    static Vector3 CameraUp = Vector3.UnitY;
+    static Vector3 CameraDirection = Vector3.Zero; 
+    static float CameraYaw = -90f;
+    static float CameraPitch;
+    static float CameraZoom = 45f;
+
+    static Vector2 LastMousePosition;
     
 
     static readonly float[] Vertices =
@@ -54,9 +59,9 @@ class Program
     {
         var options = WindowOptions.Default with
         {
-            Size = new Vector2D<int>(800, 600),
+            Size = new Vector2D<int>(1280, 720),
             Title = "Engine",
-            WindowBorder = WindowBorder.Fixed,
+            // WindowBorder = WindowBorder.Fixed,
             IsVisible = false,
         };
         Window = SilkWindow.Create(options);
@@ -65,10 +70,52 @@ class Program
         Window.Update += OnUpdate;
         Window.Render += OnRender;
         Window.Closing += OnClose;
+        Window.FramebufferResize += OnFrameBufferResize;
 
         Window.Run();
         Window.Dispose();
     }
+
+    static void OnFrameBufferResize(Vector2D<int> newSize)
+    {
+        GL.Viewport(newSize);
+    }
+    static void OnMouseMove(IMouse mouse, Vector2 position)
+    {
+        var lookSensitivity = 0.1f;
+        if (LastMousePosition == default)
+                LastMousePosition = position;
+        else
+        {
+            var xOffset = (position.X - LastMousePosition.X) * lookSensitivity;
+            var yOffset = (position.Y - LastMousePosition.Y) * lookSensitivity;
+            LastMousePosition = position;
+            
+            CameraYaw += xOffset;
+            CameraPitch -= yOffset;
+
+            CameraPitch = Math.Clamp(CameraPitch, -89f, 89f);
+
+            CameraDirection.X = MathF.Cos(Scalar.DegreesToRadians(CameraYaw)) * MathF.Cos(Scalar.DegreesToRadians(CameraPitch));
+            CameraDirection.Y = MathF.Sin(Scalar.DegreesToRadians(CameraPitch));
+            CameraDirection.Z = MathF.Sin(Scalar.DegreesToRadians(CameraYaw)) * MathF.Cos(Scalar.DegreesToRadians(CameraPitch));
+            CameraFront = Vector3.Normalize(CameraDirection);
+        }
+    }
+
+    static void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
+    {
+        CameraZoom = Math.Clamp(CameraZoom - scrollWheel.Y, 1.0f, 45f);
+    }
+
+    static void KeyDown(IKeyboard keyboard, Key key, int code)
+    {
+        if (key == Key.Escape)
+        {
+            Window.Close();
+        }
+    }
+    
     static void OnLoad()
     {
         GL = Window.CreateOpenGL();
@@ -89,15 +136,17 @@ class Program
         Shader = new Shader(GL, "shader.vert", "shader.frag");
         
         IInputContext input = Window.CreateInput();
-        foreach (IKeyboard keyboard in input.Keyboards)
+        
+        PrimaryKeyboard = input.Keyboards.FirstOrDefault();
+        
+        if (PrimaryKeyboard is not null)
+                PrimaryKeyboard.KeyDown += KeyDown;
+
+        foreach (IMouse mouse in input.Mice)
         {
-            keyboard.KeyDown += (keyboard1, key, code) =>
-            {
-                if (key == Key.Escape)
-                {
-                    Window.Close();
-                }
-            };
+            mouse.Cursor.CursorMode = CursorMode.Raw;
+            mouse.MouseMove += OnMouseMove;
+            mouse.Scroll += OnMouseWheel;
         }
 
 
@@ -107,8 +156,31 @@ class Program
 
     static void OnUpdate(double delta)
     {
+
+        var moveSpeed = 2.5f * (float)delta;
+
+        if (PrimaryKeyboard.IsKeyPressed(Key.W))
+        {
+            CameraPosition += moveSpeed * CameraFront;
+        }
+
+        if (PrimaryKeyboard.IsKeyPressed(Key.S))
+        {
+            CameraPosition -= moveSpeed * CameraFront;
+        }
+
+        if (PrimaryKeyboard.IsKeyPressed(Key.A))
+        {
+            CameraPosition -= Vector3.Normalize(Vector3.Cross(CameraFront, CameraUp)) * moveSpeed;
+        }
+
+        if (PrimaryKeyboard.IsKeyPressed(Key.D))
+        {
+            CameraPosition += Vector3.Normalize(Vector3.Cross(CameraFront, CameraUp)) * moveSpeed;
+        }
+        
         if(Transforms.Count > 0)
-            Transforms[0].Rotation = Quaternion.CreateFromAxisAngle(new Vector3(0f, 0f, 1.0f), Scalar.DegreesToRadians((float) Window.Time * 180));
+            Transforms[0].Rotation = Quaternion.CreateFromAxisAngle(new Vector3(0f, 0f, 1.0f), Scalar.DegreesToRadians((float) Window.Time * 30));
     }
     
     static unsafe void OnRender(double delta)
@@ -120,9 +192,9 @@ class Program
         Texture.Bind();
         Shader.Use();
 
-        Matrix4x4 viewMatrix = Matrix4x4.CreateLookAt(CameraPosition, CameraTarget, CameraUp);
+        Matrix4x4 viewMatrix = Matrix4x4.CreateLookAt(CameraPosition, CameraPosition + CameraFront, CameraUp);
         Matrix4x4 projectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(
-            Scalar.DegreesToRadians(45.0f), (float) Window.Size.X / Window.Size.Y, 0.1f, 100.0f);
+            Scalar.DegreesToRadians(CameraZoom), (float) Window.Size.X / Window.Size.Y, 0.1f, 100.0f);
         
         Shader.SetUniform("uView", viewMatrix);
         Shader.SetUniform("uProjection", projectionMatrix);
